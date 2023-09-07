@@ -1,22 +1,70 @@
-// const container = document.querySelector('#recordings');
 URL = window.URL || window.webkitURL;
-var record = WaveSurfer.Record.create({});
-var wavesurfer = WaveSurfer.create({
-    container: "#recording",
-    waveColor: "rgb(200,0,200)",
-    progressColor: "rgb(100, 0, 100)",
-    plugins: [record],
+const RECORDING_COLOR = "red", RECORDED_COLOR = "yellow", PROMPTED_COLOR = "blue";
+const textRecordingButton = "Recording", textPromptButton = "Prompt";
+
+var record = WaveSurfer.Record.create({
+    bufferSize: 4096, numberOfChannels: 1,
 });
+var wavesurfer = null;
+
 
 let startTime, endTime;
+let recordedItems = [];
 let selectedButton = null;
+let recordingButton, promptButton = null;
 
 
-record.on('record-end',(blob) => {
+record.on('record-end', (blob) => {
     const recordedUrl = URL.createObjectURL(blob);
+    recordedItems[selectedButton.id] = {recordedUrl, status: "pending"};  // status: pending (recording, prompt);
+    console.log()
+    // const wavesurfer_1 = WaveSurfer.create({
+    //     container: "#wave_wrapper",
+    //     waveColor: 'rgb(200, 100, 0)',
+    //     progressColor: 'rgb(100, 50, 0)',
+    //     autoplay: true,
+    //     url: recordedUrl,
+    // })
+    generateButtons();
+    console.log('stopped recording');
+    // uploadAudioFile(blob);
+})
 
-    var d = new Date(startTime);
-    var file_name = `Recording__${d.getFullYear()}_${d.getMonth() + 1}_${d.getDate()}__${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}.wav`;
+record.on('record-start', () => {
+    console.log('Let s start recording');
+})
+
+function generateButtons() {
+    // Generate recording button
+    recordingButton = square.appendChild(document.createElement('button'))
+    recordingButton.textContent = textRecordingButton;
+    recordingButton.style.left = "25%"
+    recordingButton.style.color = RECORDED_COLOR;
+    recordingButton.onclick = () => {
+        recordedItems[selectedButton.id]["status"] = "recording";
+        destroyButtons();
+    }
+
+    // Generate prompt button
+    promptButton = square.appendChild(document.createElement('button'))
+    promptButton.textContent = textPromptButton;
+    promptButton.style.right = '25%'
+    promptButton.style.color = PROMPTED_COLOR;
+    promptButton.onclick = () => {
+        recordedItems[selectedButton.id]["status"] = "prompt"
+        selectedButton.style.backgroundColor = PROMPTED_COLOR;
+        destroyButtons();
+    }
+}
+
+function destroyButtons() {
+    square.removeChild(recordingButton) && (recordingButton = null);
+    square.removeChild(promptButton) && (promptButton = null);
+}
+
+function uploadAudioFile(blob) {
+    let d = new Date(startTime);
+    let file_name = `Recording__${d.getFullYear()}_${d.getMonth() + 1}_${d.getDate()}__${d.getHours()}_${d.getMinutes()}_${d.getSeconds()}.wav`;
 
     const formData = new FormData();
     formData.append('audio', blob, file_name);
@@ -29,38 +77,53 @@ record.on('record-end',(blob) => {
         processData: false,
         contentType: false,
         success: function (data) {
-            const wavesurfer = WaveSurfer.create({
-                container:"#recording",
-                waveColor: 'rgb(200, 100, 0)',
-                progressColor: 'rgb(100, 50, 0)',
-                url: recordedUrl,
-            })
-            wavesurfer.play();
             console.log('Audio uploaded:', data);
         },
         error: function (error) {
             console.error('Error uploading audio:', error);
         }
     });
+}
 
-})
 function startRecording(e) {
     e.preventDefault();
     selectedButton = this
-    selectedButton.style.backgroundColor = "red";
-    startTime = new Date().getTime();
-    record.startRecording();
+
+    if (recordedItems[selectedButton.id]) {
+        // Only replay recorded audio file
+        wavesurfer.destroy()
+        wavesurfer = WaveSurfer.create({
+            container: "#wave_wrapper",
+            waveColor: 'rgb(200, 100, 0)',
+            progressColor: 'rgb(100, 50, 0)',
+            autoplay: true,
+            url: recordedItems[e.target.id]["recordedUrl"],
+        })
+        if (recordedItems[selectedButton.id]["status"] == "pending") generateButtons();
+        else destroyButtons();
+    } else {
+        // Start to record new audio
+        console.log('namju');
+        if (recordedItems.length) destroyButtons();
+        selectedButton.style.backgroundColor = RECORDING_COLOR;
+        startTime = new Date().getTime();
+        if (wavesurfer) wavesurfer.destroy();
+        wavesurfer = WaveSurfer.create({
+            container: "#wave_wrapper",
+            waveColor: "rgb(200,0,200)",
+            progressColor: "rgb(100, 0, 100)",
+            plugins: [record],
+        });
+        record.startRecording();
+    }
 }
 
 function stopRecording(e) {
     e.preventDefault();
-    selectedButton && (selectedButton.style.backgroundColor = "yellow");e.preventDefault();
-    selectedButton && (selectedButton.style.backgroundColor = "yellow");
+    selectedButton && (selectedButton.style.backgroundColor = RECORDED_COLOR);
     record.stopRecording();
-    record.destroy();
 }
 
 
 button_1.onmousedown = button_2.onmousedown = button_3.onmousedown = button_4.onmousedown = startRecording;
-// document.body.onmouseup = button_1.onmouseup = button_2.onmouseup = button_3.onmouseup = button_4.onmouseup = stopRecording;
 document.body.onmouseup = button_1.onmouseup = button_2.onmouseup = button_3.onmouseup = button_4.onmouseup = stopRecording;
