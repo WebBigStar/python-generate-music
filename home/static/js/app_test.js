@@ -2,37 +2,13 @@ URL = window.URL || window.webkitURL;
 const RECORDING_COLOR = "red", RECORDED_COLOR = "yellow", PROMPTED_COLOR = "blue";
 const textRecordingButton = "Recording", textPromptButton = "Prompt";
 
-var record = WaveSurfer.Record.create({
-    bufferSize: 4096, numberOfChannels: 1,
-});
-var wavesurfer = null;
-
+var record, wavesurfer = null;
 
 let startTime, endTime;
 let recordedItems = [];
 let selectedButton = null;
 let recordingButton, promptButton = null;
 
-
-record.on('record-end', (blob) => {
-    const recordedUrl = URL.createObjectURL(blob);
-    recordedItems[selectedButton.id] = {recordedUrl, status: "pending"};  // status: pending (recording, prompt);
-    console.log()
-    // const wavesurfer_1 = WaveSurfer.create({
-    //     container: "#wave_wrapper",
-    //     waveColor: 'rgb(200, 100, 0)',
-    //     progressColor: 'rgb(100, 50, 0)',
-    //     autoplay: true,
-    //     url: recordedUrl,
-    // })
-    generateButtons();
-    console.log('stopped recording');
-    // uploadAudioFile(blob);
-})
-
-record.on('record-start', () => {
-    console.log('Let s start recording');
-})
 
 function generateButtons() {
     // Generate recording button
@@ -42,6 +18,7 @@ function generateButtons() {
     recordingButton.style.color = RECORDED_COLOR;
     recordingButton.onclick = () => {
         recordedItems[selectedButton.id]["status"] = "recording";
+        console.log("recording button clicked of",selectedButton.id )
         destroyButtons();
     }
 
@@ -91,7 +68,8 @@ function startRecording(e) {
 
     if (recordedItems[selectedButton.id]) {
         // Only replay recorded audio file
-        wavesurfer.destroy()
+        console.log("playing of ",selectedButton.id)
+        wavesurfer.destroy() && (wavesurfer = null);
         wavesurfer = WaveSurfer.create({
             container: "#wave_wrapper",
             waveColor: 'rgb(200, 100, 0)',
@@ -103,11 +81,31 @@ function startRecording(e) {
         else destroyButtons();
     } else {
         // Start to record new audio
-        console.log('namju');
-        if (recordedItems.length) destroyButtons();
+        console.log("recorded items",recordedItems);
+        if (recordedItems.length) {
+            console.log("Hello destroy");
+            destroyButtons();
+        }
         selectedButton.style.backgroundColor = RECORDING_COLOR;
         startTime = new Date().getTime();
-        if (wavesurfer) wavesurfer.destroy();
+        // create new recorder
+        record = WaveSurfer.Record.create({
+            bufferSize: 4096, numberOfChannels: 1,
+        });
+        record.on('record-end', (blob) => {
+            console.log("");
+            const recordedUrl = URL.createObjectURL(blob);
+            recordedItems[selectedButton.id] = {recordedUrl, status: "pending"};  // status: pending (recording, prompt);
+            console.log("")
+            generateButtons();
+            console.log('stopped recording of ',selectedButton.id);
+            // uploadAudioFile(blob);
+        })
+
+        record.on('record-start', () => {
+            console.log('Let s start recording of ', selectedButton.id);
+        })
+
         wavesurfer = WaveSurfer.create({
             container: "#wave_wrapper",
             waveColor: "rgb(200,0,200)",
@@ -121,7 +119,7 @@ function startRecording(e) {
 function stopRecording(e) {
     e.preventDefault();
     selectedButton && (selectedButton.style.backgroundColor = RECORDED_COLOR);
-    record.stopRecording();
+    record.destroy() && (record = null);
 }
 
 
