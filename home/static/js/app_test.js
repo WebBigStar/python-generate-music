@@ -11,15 +11,15 @@ let recordingButton, promptButton = null;
 
 
 function generateButtons() {
+    let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
+
     // Generate recording button
     recordingButton = square.appendChild(document.createElement('button'))
     recordingButton.textContent = textRecordingButton;
     recordingButton.style.left = "25%"
     recordingButton.style.color = RECORDED_COLOR;
-    let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
     recordingButton.onclick = () => {
         recordedItems[selectedKey].status = "recording";
-        console.log("recording button clicked of", selectedButton.id)
         destroyButtons();
     }
 
@@ -82,7 +82,6 @@ function buttonClick(e) {
         })
         if (recordedItems[selectedKey].status == "pending") generateButtons();
     } else {
-        // Start to record new audio
         selectedButton.style.backgroundColor = RECORDING_COLOR;
 
         // create new recorder
@@ -95,7 +94,6 @@ function buttonClick(e) {
             recordedItems.push({id: selectedButton.id, recordedUrl, status: "pending"});
             selectedButton.style.backgroundColor = RECORDED_COLOR;
             generateButtons();
-            console.log('stopped recording of ', selectedButton.id);
             // uploadAudioFile(blob);
         })
 
