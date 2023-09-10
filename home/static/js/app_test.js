@@ -16,9 +16,10 @@ function generateButtons() {
     recordingButton.textContent = textRecordingButton;
     recordingButton.style.left = "25%"
     recordingButton.style.color = RECORDED_COLOR;
+    let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
     recordingButton.onclick = () => {
-        recordedItems[selectedButton.id]["status"] = "recording";
-        console.log("recording button clicked of",selectedButton.id )
+        recordedItems[selectedKey].status = "recording";
+        console.log("recording button clicked of", selectedButton.id)
         destroyButtons();
     }
 
@@ -28,15 +29,16 @@ function generateButtons() {
     promptButton.style.right = '25%'
     promptButton.style.color = PROMPTED_COLOR;
     promptButton.onclick = () => {
-        recordedItems[selectedButton.id]["status"] = "prompt"
+        recordedItems[selectedKey].status = "prompt"
         selectedButton.style.backgroundColor = PROMPTED_COLOR;
         destroyButtons();
     }
 }
 
 function destroyButtons() {
-    square.removeChild(recordingButton) && (recordingButton = null);
-    square.removeChild(promptButton) && (promptButton = null);
+    console.log(recordingButton);
+    if (recordingButton) square.removeChild(recordingButton) && (recordingButton = null);
+    if (promptButton) square.removeChild(promptButton) && (promptButton = null);
 }
 
 function uploadAudioFile(blob) {
@@ -62,48 +64,43 @@ function uploadAudioFile(blob) {
     });
 }
 
-function startRecording(e) {
+function buttonClick(e) {
     e.preventDefault();
     selectedButton = this
+    let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
+    if (wavesurfer) wavesurfer.destroy() && (wavesurfer = null);
+    destroyButtons();
 
-    if (recordedItems[selectedButton.id]) {
+    if (selectedKey > -1) {
         // Only replay recorded audio file
-        console.log("playing of ",selectedButton.id)
-        wavesurfer.destroy() && (wavesurfer = null);
         wavesurfer = WaveSurfer.create({
             container: "#wave_wrapper",
             waveColor: 'rgb(200, 100, 0)',
             progressColor: 'rgb(100, 50, 0)',
             autoplay: true,
-            url: recordedItems[e.target.id]["recordedUrl"],
+            url: recordedItems[selectedKey].recordedUrl,
         })
-        if (recordedItems[selectedButton.id]["status"] == "pending") generateButtons();
-        else destroyButtons();
+        if (recordedItems[selectedKey].status == "pending") generateButtons();
     } else {
         // Start to record new audio
-        console.log("recorded items",recordedItems);
-        if (recordedItems.length) {
-            console.log("Hello destroy");
-            destroyButtons();
-        }
         selectedButton.style.backgroundColor = RECORDING_COLOR;
-        startTime = new Date().getTime();
+
         // create new recorder
         record = WaveSurfer.Record.create({
             bufferSize: 4096, numberOfChannels: 1,
         });
+
         record.on('record-end', (blob) => {
-            console.log("");
             const recordedUrl = URL.createObjectURL(blob);
-            recordedItems[selectedButton.id] = {recordedUrl, status: "pending"};  // status: pending (recording, prompt);
-            console.log("")
+            recordedItems.push({id: selectedButton.id, recordedUrl, status: "pending"});
+            selectedButton.style.backgroundColor = RECORDED_COLOR;
             generateButtons();
-            console.log('stopped recording of ',selectedButton.id);
+            console.log('stopped recording of ', selectedButton.id);
             // uploadAudioFile(blob);
         })
 
         record.on('record-start', () => {
-            console.log('Let s start recording of ', selectedButton.id);
+            startTime = new Date().getTime();
         })
 
         wavesurfer = WaveSurfer.create({
@@ -116,12 +113,11 @@ function startRecording(e) {
     }
 }
 
-function stopRecording(e) {
+function buttonUp(e) {
     e.preventDefault();
-    selectedButton && (selectedButton.style.backgroundColor = RECORDED_COLOR);
-    record.destroy() && (record = null);
+    if (record) record.destroy() && (record = null);
 }
 
 
-button_1.onmousedown = button_2.onmousedown = button_3.onmousedown = button_4.onmousedown = startRecording;
-document.body.onmouseup = button_1.onmouseup = button_2.onmouseup = button_3.onmouseup = button_4.onmouseup = stopRecording;
+button_1.onmousedown = button_2.onmousedown = button_3.onmousedown = button_4.onmousedown = buttonClick;
+document.body.onmouseup = button_1.onmouseup = button_2.onmouseup = button_3.onmouseup = button_4.onmouseup = buttonUp;
