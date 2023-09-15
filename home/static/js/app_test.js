@@ -1,5 +1,5 @@
 URL = window.URL || window.webkitURL;
-const RECORDING_COLOR = "red", RECORDED_COLOR = "yellow", PROMPTED_COLOR = "blue";
+const RECORDING_COLOR = "red", RECORDED_COLOR = "#FFD600", PROMPTED_COLOR = "#6B95FF";
 const textRecordingButton = "Recording", textPromptButton = "Prompt";
 
 var record, wavesurfer = null;
@@ -8,7 +8,7 @@ let startTime, endTime;
 let recordedItems = [];
 let selectedButton = null;
 let recordingButton, promptButton = null;
-
+let backArrow, forwardArrow = null;
 
 function generateButtons() {
     let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
@@ -36,9 +36,28 @@ function generateButtons() {
 }
 
 function destroyButtons() {
-    console.log(recordingButton);
     if (recordingButton) square.removeChild(recordingButton) && (recordingButton = null);
     if (promptButton) square.removeChild(promptButton) && (promptButton = null);
+}
+
+function generateArrows() {
+    backArrow = duration.appendChild(document.createElement('span'));
+    $(backArrow).addClass('back-arrow').text("<--").css('color',RECORDING_COLOR);
+    backArrow.onclick = () => {
+        wavesurfer.play()
+    }
+
+    forwardArrow = duration.appendChild(document.createElement('span'));
+    $(forwardArrow).addClass('forward-arrow').text("-->").css('color',RECORDING_COLOR);
+
+    forwardArrow.onclick = () => {
+        wavesurfer.play();
+    }
+}
+
+function destroyArrows() {
+    if(backArrow) duration.removeChild(backArrow) && (backArrow = null);
+    if(forwardArrow) duration.removeChild(forwardArrow) && (forwardArrow = null)
 }
 
 function uploadAudioFile(blob) {
@@ -69,7 +88,7 @@ function buttonClick(e) {
     selectedButton = this
     let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
     if (wavesurfer) wavesurfer.destroy() && (wavesurfer = null);
-    destroyButtons();
+    destroyButtons(),destroyArrows();
 
     if (selectedKey > -1) {
         // Only replay recorded audio file
@@ -77,10 +96,10 @@ function buttonClick(e) {
             container: "#wave_wrapper",
             waveColor: 'rgb(200, 100, 0)',
             progressColor: 'rgb(100, 50, 0)',
-            autoplay: true,
             url: recordedItems[selectedKey].recordedUrl,
         })
         if (recordedItems[selectedKey].status == "pending") generateButtons();
+        generateArrows()
     } else {
         selectedButton.style.backgroundColor = RECORDING_COLOR;
 
@@ -94,6 +113,7 @@ function buttonClick(e) {
             recordedItems.push({id: selectedButton.id, recordedUrl, status: "pending"});
             selectedButton.style.backgroundColor = RECORDED_COLOR;
             generateButtons();
+            generateArrows();
             // uploadAudioFile(blob);
         })
 
