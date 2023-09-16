@@ -1,5 +1,5 @@
 URL = window.URL || window.webkitURL;
-const RECORDING_COLOR = "red", RECORDED_COLOR = "#FFD600", PROMPTED_COLOR = "#6B95FF";
+const RECORDING_COLOR = "red", RECORDED_COLOR = "#FFD600", PROMPTED_COLOR = "#6B95FF", INIT_COLOR = '#30f81b';
 const textRecordingButton = "Recording", textPromptButton = "Prompt";
 
 var record, wavesurfer = null;
@@ -42,22 +42,25 @@ function destroyButtons() {
 
 function generateArrows() {
     backArrow = duration.appendChild(document.createElement('span'));
-    $(backArrow).addClass('back-arrow').text("<--").css('color',RECORDING_COLOR);
-    backArrow.onclick = () => {
-        wavesurfer.play()
+    $(backArrow).addClass('back-arrow init').css('color', RECORDING_COLOR).text("<--")
+    backArrow.onclick = (e) => {
+        let $this = e.target;
+        $($this).hasClass('init') ? $($this).removeClass('init').addClass('active').css('color', INIT_COLOR) : $($this).removeClass('active').addClass('init').css('color', RECORDING_COLOR)
+        customPlay()
     }
 
     forwardArrow = duration.appendChild(document.createElement('span'));
-    $(forwardArrow).addClass('forward-arrow').text("-->").css('color',RECORDING_COLOR);
-
-    forwardArrow.onclick = () => {
-        wavesurfer.play();
+    $(forwardArrow).addClass('forward-arrow init').text("-->").css('color', RECORDING_COLOR);
+    forwardArrow.onclick = (e) => {
+        let $this = e.target;
+        $($this).hasClass('init') ? $($this).removeClass('init').addClass('active').css('color', INIT_COLOR) : $($this).removeClass('active').addClass('init').css('color', RECORDING_COLOR)
+        customPlay();
     }
 }
 
 function destroyArrows() {
-    if(backArrow) duration.removeChild(backArrow) && (backArrow = null);
-    if(forwardArrow) duration.removeChild(forwardArrow) && (forwardArrow = null)
+    if (backArrow) duration.removeChild(backArrow) && (backArrow = null);
+    if (forwardArrow) duration.removeChild(forwardArrow) && (forwardArrow = null)
 }
 
 function uploadAudioFile(blob) {
@@ -83,12 +86,32 @@ function uploadAudioFile(blob) {
     });
 }
 
+function customPlay() {
+    let status = ($(backArrow).hasClass('init') ? "INIT" : "ACTIVE") + "_:_" + ($(forwardArrow).hasClass('init') ? "INIT" : "ACTIVE");
+    let STOP = "INIT_:_INIT", BACK = "ACTIVE_:_INIT", FORWARD = "INIT_:_ACTIVE", GRANULAR = "ACTIVE_:_ACTIVE";
+    switch (status) {
+        case STOP:
+            wavesurfer.pause();
+            break;
+        case BACK:
+            wavesurfer.setPlaybackRate(-1), wavesurfer.play();
+            break;
+        case FORWARD:
+            wavesurfer.play();
+            break;
+        case GRANULAR:
+            console.log("GRANULAR MODE");
+            break;
+    }
+
+}
+
 function buttonClick(e) {
     e.preventDefault();
     selectedButton = this
     let selectedKey = recordedItems.findIndex((e) => e.id == selectedButton.id);
     if (wavesurfer) wavesurfer.destroy() && (wavesurfer = null);
-    destroyButtons(),destroyArrows();
+    destroyButtons(), destroyArrows();
 
     if (selectedKey > -1) {
         // Only replay recorded audio file
